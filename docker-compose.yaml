@@ -1,13 +1,43 @@
 services:
-  web-backend:
-    build: ./backend
+  db:
+    container_name: mysql
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
     ports:
-      - "8080:8080"
+      - '3307:3306'
+    networks:
+      - mysql_network
     volumes:
-      - ./backend:/app
+      - my-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 1s
+      retries: 120
   web-frontend:
     build: ./frontend
     ports:
       - "3000:80"
     volumes:
       - ./frontend:/usr/share/nginx/html
+    networks:
+      - mysql_network
+  web-backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mysql_network
+    volumes:
+      - ./backend:/app
+volumes:
+  my-db:
+networks:
+  mysql_network:
